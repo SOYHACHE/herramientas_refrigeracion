@@ -1,0 +1,139 @@
+<!DOCTYPE html><html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora de Frigorías</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f6fa;
+      padding: 20px;
+    }
+    .card {
+      max-width: 420px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.4rem;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      margin-top: 15px;
+      width: 100%;
+      padding: 10px;
+      background: #4f8cff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #3b76e0;
+    }
+    .result {
+      margin-top: 15px;
+      padding: 12px;
+      background: #eef4ff;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+  </style>
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b6efd">
+</head>
+<body>
+  <div class="card">
+    <h1>Calculadora de Frigorías ❄️</h1><label>Largo (m)</label>
+<input id="largo" type="number" step="0.1" onfocus="this.select()" />
+
+<label>Ancho (m)</label>
+<input id="ancho" type="number" step="0.1" onfocus="this.select()" />
+
+<label>Altura (m)</label>
+<input id="altura" type="number" step="0.1" value="2.6" onfocus="this.select()" />
+
+<label>Personas</label>
+<input id="personas" type="number" value="2" onfocus="this.select()" />
+
+<label>Animales</label>
+<input id="animales" type="number" value="0" onfocus="this.select()" />
+
+<label>Electrodomésticos (TV, heladera, cocina)</label>
+<input id="electros" type="number" value="0" onfocus="this.select()" />
+
+<label>¿Le da el sol directo?</label>
+<select id="sol" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;">
+  <option value="no">No</option>
+  <option value="si">Sí</option>
+</select>
+
+<button onclick="calcular()">Calcular</button>
+
+<div id="resultado" class="result" style="display:none"></div>
+<button onclick="window.location.href='index.html'">
+  Volver al inicio
+</button>
+  </div>  
+  
+  <script>
+    function calcular() {
+      const largo = Number(document.getElementById('largo').value);
+      const ancho = Number(document.getElementById('ancho').value);
+      const altura = Number(document.getElementById('altura').value);
+      const personas = Number(document.getElementById('personas').value);
+      const animales = Number(document.getElementById('animales').value);
+      const electros = Number(document.getElementById('electros').value);
+
+      if (!largo || !ancho || !altura) return;
+
+      let m2 = largo * ancho;
+      let frigorias = m2 * 100;
+
+      if (altura > 2.6) frigorias *= 1.1;
+
+      if (personas > 2) frigorias += (personas - 2) * 150;
+
+      frigorias += animales * 100;
+      frigorias += electros * 250;
+
+      const sol = document.getElementById('sol').value;
+      if (sol === 'si') frigorias *= 1.15;
+
+      const minimo = Math.ceil(frigorias / 500) * 500;
+      const ideal = Math.ceil((frigorias * 1.2) / 500) * 500;
+      const btu = Math.round(ideal * 3.97);
+
+      const res = document.getElementById('resultado');
+      res.style.display = 'block';
+      res.innerHTML = `Frigorías estimadas: ${Math.round(frigorias)}<br>
+      Equipo mínimo: ${minimo} frigorías<br>
+      Equipo ideal recomendado: ${ideal} frigorías<br>
+      ≈ ${btu} BTU`;
+    }
+  </script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js');
+  }
+</script>
+</body>
+</html>

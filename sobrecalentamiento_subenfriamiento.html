@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Diagnóstico Refrigeración — Airi</title>
+<style>
+  body{font-family:Arial;background:#eef2f7;margin:0;padding:20px;}
+  .card{background:#fff;padding:20px;border-radius:12px;max-width:600px;margin:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1);}
+  h2{text-align:center;}
+  input,select{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid #ccc;}
+  button{padding:12px;width:100%;background:#0b6efd;color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;}
+  button:hover{background:#0954c6;}
+  .result{margin-top:20px;padding:15px;background:#f7fbff;border-left:5px solid #0b6efd;border-radius:8px;}
+</style>
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b6efd">
+</head>
+
+<body>
+<div class="card">
+<h2>Diagnóstico de Refrigeración</h2>
+
+<label>Refrigerante:</label>
+<select id="gas">
+  <option value="R134a">R134a</option>
+  <option value="R600a">R600a</option>
+  <option value="R404A">R404A</option>
+  <option value="R410A">R410A</option>
+</select>
+
+<label>PSI de succión:</label>
+<input type="number" id="psi" step="0.1">
+
+<label>Temperatura del freezer (°C):</label>
+<input type="number" id="tf" step="0.1">
+
+<label>Temp. caño succión (°C):</label>
+<input type="number" id="tsuc" step="0.1">
+
+<button onclick="calcular()">Calcular</button>
+
+<div id="out" class="result"></div>
+</div>
+<button onclick="window.location.href='index.html'">
+  Volver al inicio
+</button>
+<script>
+// Tablas PT simplificadas (PSI → Tsat°C)
+const PT = {
+  R134a: {
+    0: -26.3, 1: -24.6, 2: -23.0, 3:-21.4, 4:-19.8, 5:-18.2, 6:-16.6,
+    10:-11.2, 15:-4.0, 20:2.0, 25:7.5, 30:12.5
+  },
+  R600a: {
+    0:-34, 1:-32.5, 2:-31, 3:-29.5, 4:-28, 5:-26.5, 6:-25,
+    10:-19, 15:-11, 20:-4
+  },
+  R404A:{
+    5:-46, 10:-38, 15:-32, 20:-26, 25:-22, 30:-17, 35:-13,
+    40:-9, 50:-2, 60:5
+  },
+  R410A:{
+    50:-23, 60:-18, 70:-14, 80:-10, 90:-6, 100:-2,
+    110:1, 120:4
+  }
+};
+
+// función para interpolar PSI → Tsat
+function interp(gas, psi){
+  const tabla = PT[gas];
+  const keys = Object.keys(tabla).map(Number).sort((a,b)=>a-b);
+
+  if (psi <= keys[0]) return tabla[keys[0]];
+  if (psi >= keys[keys.length-1]) return tabla[keys[keys.length-1]];
+
+  for(let i=0;i<keys.length-1;i++){
+    if(psi >= keys[i] && psi <= keys[i+1]){
+      let x1=keys[i], x2=keys[i+1];
+      let y1=tabla[x1], y2=tabla[x2];
+      return y1 + ( (psi-x1)/(x2-x1) ) * (y2-y1);
+    }
+  }
+}
+
+function calcular(){
+  const gas = document.getElementById("gas").value;
+  const psi = parseFloat(document.getElementById("psi").value);
+  const tf  = parseFloat(document.getElementById("tf").value);
+  const tsuc= parseFloat(document.getElementById("tsuc").value);
+
+  const tsat = interp(gas, psi);
+
+  // Recalentamiento total
+  const rt = tsuc - tsat;
+
+  // Tsat ideal según temperatura del freezer (TF - 5°C)
+  const tsatIdeal = tf - 5;
+  const deltaTF = Math.abs(tsatIdeal - tsat);
+
+  let alertas = "";
+
+ // ✔ análisis del recalentamiento total (RT)
+// Nuevo criterio: RT debe ser < 30°C
+if(rt < 0){
+    alertas += "• Recalentamiento negativo → ingreso de líquido al compresor (peligroso).<br>";
+} else if(rt <= 30){
+    alertas += "• Recalentamiento total dentro del rango aceptable (< 30°C).<br>";
+} else {
+    alertas += "• Recalentamiento total elevado → posible falta de refrigerante o restricción en el capilar/filtro.<br>";
+}
+
+  // ✔ análisis de TF vs Tsat
+  if(deltaTF <= 2){
+    alertas += "• Relación Tsat–Freezer correcta (Δ esperado 4–6°C).<br>";
+  } else {
+    alertas += "• Tsat no coincide con la carga térmica del freezer → revisar flujo de aire, termostato o hielo en evaporador.<br>";
+  }
+
+  document.getElementById("out").innerHTML = `
+    <b>Refrigerante:</b> ${gas}<br>
+    <b>PSI:</b> ${psi}<br><br>
+
+    <b>Temperatura de saturación (Tsat):</b> ${tsat.toFixed(1)} °C<br>
+    <b>Temp. del caño (Tsuc):</b> ${tsuc} °C<br>
+    <b>Recalentamiento total (RT):</b> ${rt.toFixed(1)} °C<br><br>
+
+    <b>Temperatura del freezer:</b> ${tf} °C<br>
+    <b>Tsat ideal según TF:</b> ${tsatIdeal.toFixed(1)} °C<br>
+    <b>Diferencia real:</b> ${deltaTF.toFixed(1)} °C<br><br>
+
+    <b><u>ANÁLISIS:</u></b><br>
+    ${alertas}
+  `;
+}
+</script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js');
+  }
+</script>
+
+</body>
+</html>
